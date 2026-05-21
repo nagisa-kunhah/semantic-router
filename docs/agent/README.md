@@ -29,6 +29,8 @@ This directory is the human-readable system of record for the repository's agent
   - data-driven lookup tables for session-aware routing decisions
 - [plans/README.md](plans/README.md)
   - when to use execution plans for long-horizon completion loops, how they differ from ADRs/debt, and the current plan inventory
+- [reviews/README.md](reviews/README.md)
+  - author-provided review brief format, path convention, and safety rules for memory-assisted PR review
 - [tech-debt-register.md](tech-debt-register.md)
   - landing page and policy for repository technical debt
 - [tech-debt/README.md](tech-debt/README.md)

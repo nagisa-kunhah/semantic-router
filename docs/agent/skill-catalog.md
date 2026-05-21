@@ -50,6 +50,7 @@ Skills stay intentionally concise. Keep deep reference material in the linked pl
 - `maintainer-issue-pr-management`
 - `architecture-guardrails`
 - `claude-code-install`
+- `review-brief-authoring`
 
 ## Source of Truth
 

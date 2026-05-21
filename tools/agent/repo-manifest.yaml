@@ -96,6 +96,8 @@ subsystems:
       - .github/PULL_REQUEST_TEMPLATE.md
       - .github/ISSUE_TEMPLATE/**
       - .prowlabels.yaml
+      - .github/workflows/agent-memory-classifier.yml
+      - .github/workflows/agent-memory-review.yml
     entrypoints:
       - AGENTS.md
       - docs/agent/README.md
@@ -121,6 +123,7 @@ docs:
   - docs/agent/governance.md
   - docs/agent/lookup-tables.md
   - docs/agent/plans/README.md
+  - docs/agent/reviews/README.md
   - docs/agent/plans/pl-0001-harness-roadmap.md
   - docs/agent/plans/pl-0002-e2e-rationalization-roadmap.md
   - docs/agent/plans/pl-0003-v0-3-config-contract-rollout.md
@@ -293,6 +296,9 @@ doc_governance:
     - path: docs/agent/plans/README.md
       steward: agent-contract
       freshness: update when canonical execution plans are added, removed, or reorganized
+    - path: docs/agent/reviews/README.md
+      steward: agent-contract
+      freshness: update when review brief format, path, or memory-assisted review rules change
     - path: docs/agent/plans/pl-0001-harness-roadmap.md
       steward: agent-contract
       freshness: update at the start and end of each harness refactor loop and after each completed loop task
@@ -610,3 +616,4 @@ skills:
   - tools/agent/skills/routing-calibration-loop/SKILL.md
   - tools/agent/skills/maintainer-issue-pr-management/SKILL.md
   - tools/agent/skills/architecture-guardrails/SKILL.md
+  - tools/agent/skills/review-brief-authoring/SKILL.md
