@@ -24,8 +24,7 @@ BRIEF_PATH_PATTERN = re.compile(
     r"[a-z0-9]+(?:-[a-z0-9]+)*\.md$"
 )
 REVIEW_BRIEF_LINE_PATTERN = re.compile(
-    r"(?im)^\s*Review brief:\s*(?:\[[^\]]+\]\()?`?"
-    r"(?P<path>[^)`\s]+\.md)"
+    r"(?im)^\s*Review brief:\s*(?:\[[^\]]+\]\()?`?" r"(?P<path>[^)`\s]+\.md)"
 )
 ANY_REVIEW_BRIEF_PATH_PATTERN = re.compile(
     r"docs/agent/reviews/[0-9]{4}/[A-Za-z0-9._/-]+\.md"
@@ -39,6 +38,8 @@ class Classification:
     memory_invalid: bool
     memory_path: str | None
     invalid_reason: str | None
+    gate_passed: bool
+    gate_reason: str | None
     labels_to_add: list[str]
     labels_to_remove: list[str]
     comment_body: str
@@ -83,11 +84,20 @@ def classify_pr(
         invalid_reason = validate_memory_reference(memory_path, changed, repo_root)
     memory_invalid = invalid_reason is not None
     memory_present = memory_path is not None and not memory_invalid
+    gate_reason = review_brief_gate_failure_reason(
+        memory_required=memory_required,
+        memory_present=memory_present,
+        memory_invalid=memory_invalid,
+        invalid_reason=invalid_reason,
+    )
+    gate_passed = gate_reason is None
 
-    if not memory_required:
-        labels_to_add = [LABEL_NOT_REQUIRED]
+    if memory_invalid or (memory_required and not memory_present):
+        labels_to_add = [LABEL_MISSING]
     elif memory_present:
         labels_to_add = [LABEL_PRESENT]
+    elif not memory_required:
+        labels_to_add = [LABEL_NOT_REQUIRED]
     else:
         labels_to_add = [LABEL_MISSING]
 
@@ -98,6 +108,8 @@ def classify_pr(
         memory_invalid=memory_invalid,
         memory_path=memory_path,
         invalid_reason=invalid_reason,
+        gate_passed=gate_passed,
+        gate_reason=gate_reason,
         labels_to_add=labels_to_add,
         labels_to_remove=labels_to_remove,
         comment_body=build_comment(
@@ -106,10 +118,32 @@ def classify_pr(
             memory_invalid=memory_invalid,
             memory_path=memory_path,
             invalid_reason=invalid_reason,
+            gate_passed=gate_passed,
+            gate_reason=gate_reason,
             total_delta=total_delta,
             threshold=threshold,
         ),
     )
+
+
+def review_brief_gate_failure_reason(
+    *,
+    memory_required: bool,
+    memory_present: bool,
+    memory_invalid: bool,
+    invalid_reason: str | None,
+) -> str | None:
+    if (
+        memory_required
+        and not memory_present
+        and invalid_reason == "Missing review brief reference"
+    ):
+        return "Review brief is required for this PR size but no valid brief was found"
+    if memory_invalid:
+        return invalid_reason or "Review brief reference is invalid"
+    if memory_required and not memory_present:
+        return "Review brief is required for this PR size but no valid brief was found"
+    return None
 
 
 def validate_memory_reference(
@@ -138,6 +172,8 @@ def build_comment(
     memory_invalid: bool,
     memory_path: str | None,
     invalid_reason: str | None,
+    gate_passed: bool,
+    gate_reason: str | None,
     total_delta: int,
     threshold: int,
 ) -> str:
@@ -146,18 +182,22 @@ def build_comment(
         "",
         f"- Size signal: `{total_delta}` changed lines; threshold is `{threshold}`.",
     ]
-    if not memory_required:
-        lines.append("- Memory context: not required for this PR size.")
+    if memory_invalid:
+        lines.append(f"- Memory context: invalid. {invalid_reason}.")
     elif memory_present:
         lines.append(f"- Memory context: present at `{memory_path}`.")
-    elif memory_invalid:
-        lines.append(f"- Memory context: invalid. {invalid_reason}.")
+    elif not memory_required:
+        lines.append("- Memory context: not required for this PR size.")
     else:
         lines.append("- Memory context: missing.")
+    if gate_passed:
+        lines.append("- Hard gate: passed.")
+    else:
+        lines.append(f"- Hard gate: failed. {gate_reason}.")
     lines.extend(
         [
             "",
-            "This rollout is observational: it labels and comments, but does not block CI.",
+            "This check is a hard merge gate for required, valid review-brief references.",
         ]
     )
     return "\n".join(lines)

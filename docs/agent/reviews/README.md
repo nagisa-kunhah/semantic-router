@@ -37,4 +37,10 @@ Use this exact template:
 
 ## Rollout
 
-The initial rollout labels PRs so maintainers can observe how review briefs affect AI-assisted review quality. Missing briefs should produce labels and comments, not a hard CI failure, until the repository explicitly promotes the check to a gate.
+The memory review workflows are hard gates for required or provided review-brief context:
+
+- PRs at or above the size threshold must provide a valid review brief.
+- Any PR that provides a review brief must use a valid `docs/agent/reviews/YYYY/YYYY-MM-DD-<short-kebab-title>.md` path.
+- The memory-assisted review must explicitly classify whether the brief matches the PR diff. A brief/diff mismatch fails the review gate.
+
+The workflows still publish labels and comments first so authors can see the problem directly on the PR before the check reports failure.

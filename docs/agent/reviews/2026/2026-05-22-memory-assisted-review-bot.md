@@ -2,7 +2,7 @@
 
 ## Summary
 
-Introduces a memory-assisted code review bot that classifies PRs by size, checks for an author-provided review brief, and optionally runs an AI-powered review using the brief as context. This is the initial observational rollout: labels and comments only, no CI gate.
+Introduces a memory-assisted code review bot that classifies PRs by size, checks for an author-provided review brief, and optionally runs an AI-powered review using the brief as context. The follow-up hard-gate rollout fails PR checks when required briefs are missing or invalid, and when an author-provided brief does not match the current PR diff.
 
 ## Changed Areas
 
@@ -20,7 +20,8 @@ Introduces a memory-assisted code review bot that classifies PRs by size, checks
 - Review briefs must follow strict path convention: `docs/agent/reviews/YYYY/YYYY-MM-DD-<kebab>.md`
 - AI review uses `openai/gpt-4.1` via `actions/ai-inference@v1` with 1200 max completion tokens
 - Both workflows use `pull_request_target` to access label/comment write permissions while checking out base branch code only
-- Rollout is observational: missing briefs produce labels and comments, not CI failures
+- Missing or invalid required briefs are hard failures after labels and comments are published
+- AI review must emit a parseable brief/diff consistency verdict; mismatches and missing verdicts fail the review gate
 
 ## Validation
 
@@ -36,7 +37,7 @@ Introduces a memory-assisted code review bot that classifies PRs by size, checks
 
 ## Risks or Follow-ups
 
-- No output validation on AI inference response before posting as PR comment
+- AI inference response is post-processed for a parseable brief/diff verdict before the review gate passes
 - No rate limiting or concurrency control on workflow triggers (repeated `edited` events)
 - Prompt injection defense relies on system prompt instruction alone; no structural isolation or output sanitization
 - `actions/ai-inference@v1` availability and quota not validated in CI

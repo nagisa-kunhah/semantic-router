@@ -30,6 +30,9 @@ class AgentMemoryClassifierTests(unittest.TestCase):
 
         self.assertTrue(result.memory_required)
         self.assertFalse(result.memory_present)
+        self.assertFalse(result.gate_passed)
+        self.assertIn("required", result.gate_reason or "")
+        self.assertIn("Hard gate: failed", result.comment_body)
         self.assertEqual(result.labels_to_add, ["agent-memory-missing"])
 
     def test_large_pr_with_valid_changed_brief_is_present(self) -> None:
@@ -42,6 +45,7 @@ class AgentMemoryClassifierTests(unittest.TestCase):
         self.assertTrue(result.memory_required)
         self.assertTrue(result.memory_present)
         self.assertEqual(result.memory_path, path)
+        self.assertTrue(result.gate_passed)
         self.assertEqual(result.labels_to_add, ["agent-memory-present"])
 
     def test_small_pr_without_brief_is_not_required(self) -> None:
@@ -49,14 +53,30 @@ class AgentMemoryClassifierTests(unittest.TestCase):
 
         self.assertFalse(result.memory_required)
         self.assertFalse(result.memory_invalid)
+        self.assertTrue(result.gate_passed)
         self.assertEqual(result.labels_to_add, ["agent-memory-not-required"])
 
     def test_invalid_brief_path_is_invalid(self) -> None:
         result = self.classify(body="Review brief: docs/agent/reviews/nope.md")
 
         self.assertTrue(result.memory_invalid)
+        self.assertFalse(result.gate_passed)
         self.assertIn("must match", result.invalid_reason or "")
         self.assertEqual(result.labels_to_add, ["agent-memory-missing"])
+
+    def test_small_pr_with_invalid_brief_fails_gate(self) -> None:
+        result = self.classify(
+            body="Review brief: docs/agent/reviews/nope.md",
+            additions=5,
+            deletions=5,
+        )
+
+        self.assertFalse(result.memory_required)
+        self.assertTrue(result.memory_invalid)
+        self.assertFalse(result.gate_passed)
+        self.assertEqual(result.labels_to_add, ["agent-memory-missing"])
+        self.assertIn("Memory context: invalid", result.comment_body)
+        self.assertNotIn("not required for this PR size", result.comment_body)
 
     def test_brief_outside_review_directory_is_invalid(self) -> None:
         result = self.classify(body="Review brief: memory.md")
@@ -80,7 +100,24 @@ class AgentMemoryClassifierTests(unittest.TestCase):
             )
 
         self.assertTrue(result.memory_present)
+        self.assertTrue(result.gate_passed)
         self.assertEqual(result.labels_to_add, ["agent-memory-present"])
+
+    def test_classifier_workflow_enforces_gate_after_commenting(self) -> None:
+        workflow_path = (
+            SCRIPT_DIR.parents[2] / ".github/workflows/agent-memory-classifier.yml"
+        )
+        workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+        steps = workflow["jobs"]["classify"]["steps"]
+        names = [step.get("name") for step in steps]
+
+        self.assertLess(
+            names.index("Comment review brief status"),
+            names.index("Enforce review brief hard gate"),
+        )
+        enforce_step = steps[names.index("Enforce review brief hard gate")]
+        self.assertIn("agent_memory_review_gate.py", enforce_step["run"])
+        self.assertIn("--fail-on-gate", enforce_step["run"])
 
     def test_workflow_creates_labels_and_removes_only_current_agent_labels(
         self,

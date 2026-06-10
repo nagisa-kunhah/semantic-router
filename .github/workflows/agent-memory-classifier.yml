@@ -127,3 +127,10 @@ jobs:
             } else {
               await github.rest.issues.createComment({owner, repo, issue_number, body});
             }
+
+      - name: Enforce review brief hard gate
+        run: |
+          python3 tools/agent/scripts/agent_memory_review_gate.py \
+            --classifier agent-memory-classification.json \
+            --output agent-memory-classifier-gate.json \
+            --fail-on-gate
