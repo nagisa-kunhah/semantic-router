@@ -31,6 +31,8 @@ This directory is the human-readable system of record for the repository's agent
   - when to use execution plans for long-horizon completion loops, how they differ from ADRs/debt, and the current plan inventory
 - [reviews/README.md](reviews/README.md)
   - author-provided review brief format, path convention, and safety rules for memory-assisted PR review
+- [reviews/2026/2026-05-22-memory-assisted-review-bot.md](reviews/2026/2026-05-22-memory-assisted-review-bot.md)
+  - review brief for the initial memory-assisted review bot rollout
 - [tech-debt-register.md](tech-debt-register.md)
   - landing page and policy for repository technical debt
 - [tech-debt/README.md](tech-debt/README.md)

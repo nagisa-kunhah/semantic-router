@@ -156,6 +156,7 @@ docs:
   - docs/agent/plans/pl-0030-session-aware-model-switch-workstream.md
   - docs/agent/state-taxonomy-and-inventory.md
   - docs/agent/tech-debt-register.md
+  - docs/agent/reviews/2026/2026-05-22-memory-assisted-review-bot.md
   - docs/agent/tech-debt/README.md
   - docs/agent/tech-debt/td-001-config-surface-fragmentation.md
   - docs/agent/tech-debt/td-002-config-portability-gap-local-vs-k8s.md
@@ -299,6 +300,9 @@ doc_governance:
     - path: docs/agent/reviews/README.md
       steward: agent-contract
       freshness: update when review brief format, path, or memory-assisted review rules change
+    - path: docs/agent/reviews/2026/2026-05-22-memory-assisted-review-bot.md
+      steward: agent-contract
+      freshness: update when the memory-assisted review bot rollout changes
     - path: docs/agent/plans/pl-0001-harness-roadmap.md
       steward: agent-contract
       freshness: update at the start and end of each harness refactor loop and after each completed loop task

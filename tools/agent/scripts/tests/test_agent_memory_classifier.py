@@ -1,8 +1,11 @@
 import importlib
+import re
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+import yaml
 
 SCRIPT_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPT_DIR) not in sys.path:
@@ -78,6 +81,33 @@ class AgentMemoryClassifierTests(unittest.TestCase):
 
         self.assertTrue(result.memory_present)
         self.assertEqual(result.labels_to_add, ["agent-memory-present"])
+
+    def test_workflow_creates_labels_and_removes_only_current_agent_labels(
+        self,
+    ) -> None:
+        workflow_path = (
+            SCRIPT_DIR.parents[2] / ".github/workflows/agent-memory-classifier.yml"
+        )
+        workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+        update_step = next(
+            step
+            for step in workflow["jobs"]["classify"]["steps"]
+            if step.get("name") == "Update memory labels"
+        )
+        script = update_step["with"]["script"]
+
+        for label in classifier.LABELS:
+            self.assertIn(f"'{label}'", script)
+        self.assertIn("github.rest.issues.createLabel", script)
+        self.assertIn("github.rest.issues.listLabelsOnIssue", script)
+        self.assertIn("currentLabelNames.has(name)", script)
+        self.assertNotRegex(
+            script,
+            re.compile(
+                r"for \(const name of labelsToRemove\).*?try\s*{.*?removeLabel",
+                re.DOTALL,
+            ),
+        )
 
 
 if __name__ == "__main__":

@@ -61,11 +61,44 @@ jobs:
             const classification = JSON.parse(fs.readFileSync('agent-memory-classification.json', 'utf8'));
             const labelsToAdd = classification.labels_to_add || [];
             const labelsToRemove = classification.labels_to_remove || [];
-            for (const name of labelsToRemove) {
+            const labelDefinitions = {
+              'agent-memory-present': {
+                color: '0e8a16',
+                description: 'PR has the requested agent review brief'
+              },
+              'agent-memory-missing': {
+                color: 'd93f0b',
+                description: 'PR requires an agent review brief, but none is valid'
+              },
+              'agent-memory-not-required': {
+                color: 'cfd3d7',
+                description: 'PR does not require an agent review brief'
+              }
+            };
+            for (const [name, definition] of Object.entries(labelDefinitions)) {
               try {
-                await github.rest.issues.removeLabel({owner, repo, issue_number, name});
+                await github.rest.issues.getLabel({owner, repo, name});
               } catch (error) {
                 if (error.status !== 404) throw error;
+                await github.rest.issues.createLabel({
+                  owner,
+                  repo,
+                  name,
+                  color: definition.color,
+                  description: definition.description
+                });
+              }
+            }
+            const issueLabels = await github.paginate(github.rest.issues.listLabelsOnIssue, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100
+            });
+            const currentLabelNames = new Set(issueLabels.map(label => label.name));
+            for (const name of labelsToRemove) {
+              if (currentLabelNames.has(name)) {
+                await github.rest.issues.removeLabel({owner, repo, issue_number, name});
               }
             }
             if (labelsToAdd.length > 0) {

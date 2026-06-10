@@ -11,10 +11,12 @@ from typing import Any
 
 from agent_memory_classifier import extract_review_brief_path, valid_brief_path
 
-DEFAULT_MAX_CONTEXT_BYTES = 120_000
-DEFAULT_MAX_DIFF_BYTES = 70_000
-DEFAULT_MAX_HISTORICAL_BRIEFS = 3
-DEFAULT_MAX_BRIEF_BYTES = 12_000
+DEFAULT_MAX_CONTEXT_BYTES = 24_000
+DEFAULT_MAX_DIFF_BYTES = 8_000
+DEFAULT_MAX_HISTORICAL_BRIEFS = 1
+DEFAULT_MAX_BRIEF_BYTES = 4_000
+DEFAULT_MAX_PR_BODY_BYTES = 4_000
+DEFAULT_MAX_REPO_INSTRUCTION_BYTES = 3_000
 
 MODULE_RULES: tuple[tuple[str, str], ...] = (
     ("Router", "src/semantic-router/"),
@@ -78,8 +80,11 @@ def truncate_text(text: str, max_bytes: int) -> str:
     encoded = text.encode("utf-8")
     if len(encoded) <= max_bytes:
         return text
-    clipped = encoded[:max_bytes].decode("utf-8", errors="ignore")
-    return clipped + f"\n\n[truncated to {max_bytes} bytes]\n"
+    suffix = f"\n\n[truncated to {max_bytes} bytes]\n"
+    suffix_bytes = suffix.encode("utf-8")
+    clipped_bytes = encoded[: max(0, max_bytes - len(suffix_bytes))]
+    clipped = clipped_bytes.decode("utf-8", errors="ignore")
+    return clipped + suffix
 
 
 def read_existing_file(path: Path, max_bytes: int) -> str | None:
@@ -141,7 +146,7 @@ def historical_briefs(
 def repo_instruction_sections(repo_root: Path) -> list[tuple[str, str]]:
     sections: list[tuple[str, str]] = []
     for relative in ("AGENTS.md", ".github/copilot-instructions.md"):
-        text = read_existing_file(repo_root / relative, 10_000)
+        text = read_existing_file(repo_root / relative, DEFAULT_MAX_REPO_INSTRUCTION_BYTES)
         if text:
             sections.append((relative, text))
     return sections
@@ -153,8 +158,11 @@ def build_review_prompt(inputs: ContextInputs, *, max_historical_briefs: int) ->
     changed_files = [str(path) for path in metadata.get("changed_files", [])]
     modules = affected_modules(changed_files)
     current_path, current_text = current_brief_text(inputs)
-    memory_status = "present" if current_text else "missing"
-    if classifier.get("memory_invalid"):
+    memory_required = bool(classifier.get("memory_required"))
+    memory_present = bool(classifier.get("memory_present")) and current_text is not None
+    memory_invalid = bool(classifier.get("memory_invalid"))
+    memory_status = "present" if memory_present else "missing"
+    if memory_invalid:
         memory_status = "invalid"
 
     parts = [
@@ -177,7 +185,7 @@ def build_review_prompt(inputs: ContextInputs, *, max_historical_briefs: int) ->
         "",
         "## PR Body",
         "",
-        truncate_text(str(metadata.get("body") or ""), 16_000),
+        truncate_text(str(metadata.get("body") or ""), DEFAULT_MAX_PR_BODY_BYTES),
         "",
         "## Changed Files",
         "",
@@ -201,22 +209,24 @@ def build_review_prompt(inputs: ContextInputs, *, max_historical_briefs: int) ->
             ["## Author-provided review brief", "", "Memory context: missing", ""]
         )
 
-    for relative, text in historical_briefs(
-        repo_root=inputs.repo_root,
-        current_path=current_path,
-        modules=modules,
-        max_count=max_historical_briefs,
-    ):
-        parts.extend(
-            [
-                "## Historical review brief, possibly stale",
-                "",
-                f"Path: `{relative}`",
-                "",
-                text,
-                "",
-            ]
-        )
+    include_historical_briefs = not (memory_required and not memory_present)
+    if include_historical_briefs:
+        for relative, text in historical_briefs(
+            repo_root=inputs.repo_root,
+            current_path=current_path,
+            modules=modules,
+            max_count=max_historical_briefs,
+        ):
+            parts.extend(
+                [
+                    "## Historical review brief, possibly stale",
+                    "",
+                    f"Path: `{relative}`",
+                    "",
+                    text,
+                    "",
+                ]
+            )
 
     for relative, text in repo_instruction_sections(inputs.repo_root):
         parts.extend(
