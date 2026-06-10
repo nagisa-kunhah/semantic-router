@@ -9,22 +9,27 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 
 
 class MockVLLMHandler(BaseHTTPRequestHandler):
+    def send_json_response(self, status_code, payload):
+        body = json.dumps(payload).encode()
+        self.send_response(status_code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.wfile.write(body)
+        self.close_connection = True
+
     def do_GET(self):
         if self.path == "/health":
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"status": "ok"}).encode())
+            self.send_json_response(200, {"status": "ok"})
         elif self.path == "/v1/models":
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(
-                json.dumps({"data": [{"id": "qwen3", "object": "model"}]}).encode()
-            )
+            self.send_json_response(200, {"data": [{"id": "qwen3", "object": "model"}]})
         else:
             self.send_response(404)
+            self.send_header("Content-Length", "0")
+            self.send_header("Connection", "close")
             self.end_headers()
+            self.close_connection = True
 
     def do_POST(self):
         content_length = int(self.headers.get("Content-Length", 0))
@@ -58,10 +63,7 @@ class MockVLLMHandler(BaseHTTPRequestHandler):
             "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
         }
 
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(json.dumps(response).encode())
+        self.send_json_response(200, response)
 
     def log_message(self, format, *args):
         print(f"[MockVLLM] {args[0]}")
