@@ -124,6 +124,8 @@ docs:
   - docs/agent/lookup-tables.md
   - docs/agent/plans/README.md
   - docs/agent/reviews/README.md
+  - docs/agent/reviews/2026/2026-05-22-memory-assisted-review-bot.md
+  - docs/agent/test-fixtures/large-pr-missing-brief.md
   - docs/agent/plans/pl-0001-harness-roadmap.md
   - docs/agent/plans/pl-0002-e2e-rationalization-roadmap.md
   - docs/agent/plans/pl-0003-v0-3-config-contract-rollout.md
@@ -299,6 +301,12 @@ doc_governance:
     - path: docs/agent/reviews/README.md
       steward: agent-contract
       freshness: update when review brief format, path, or memory-assisted review rules change
+    - path: docs/agent/reviews/2026/2026-05-22-memory-assisted-review-bot.md
+      steward: agent-contract
+      freshness: update when the memory-assisted review bot rollout brief changes
+    - path: docs/agent/test-fixtures/large-pr-missing-brief.md
+      steward: agent-contract
+      freshness: update when large missing-brief review fixture coverage changes
     - path: docs/agent/plans/pl-0001-harness-roadmap.md
       steward: agent-contract
       freshness: update at the start and end of each harness refactor loop and after each completed loop task
