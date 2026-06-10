@@ -109,6 +109,17 @@ class AgentMemoryClassifierTests(unittest.TestCase):
             ),
         )
 
+    def test_workflows_request_pr_write_for_pr_label_and_comment_apis(self) -> None:
+        workflow_paths = (
+            SCRIPT_DIR.parents[2] / ".github/workflows/agent-memory-classifier.yml",
+            SCRIPT_DIR.parents[2] / ".github/workflows/agent-memory-review.yml",
+        )
+        for workflow_path in workflow_paths:
+            with self.subTest(workflow=workflow_path.name):
+                workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+                self.assertEqual(workflow["permissions"]["issues"], "write")
+                self.assertEqual(workflow["permissions"]["pull-requests"], "write")
+
 
 if __name__ == "__main__":
     unittest.main()
