@@ -110,6 +110,21 @@ class AgentMemoryReviewGateTests(unittest.TestCase):
         self.assertEqual(result.review_brief_match, "unknown")
         self.assertIn("parseable", result.gate_reason or "")
 
+    def test_classifier_only_present_brief_passes_without_ai_review(self) -> None:
+        result = review_gate.evaluate_gate(
+            classifier={
+                "memory_required": True,
+                "memory_present": True,
+                "memory_invalid": False,
+                "gate_passed": True,
+            },
+            review_response=None,
+            classifier_only=True,
+        )
+
+        self.assertTrue(result.gate_passed)
+        self.assertEqual(result.review_brief_match, "not-evaluated")
+
     def test_not_required_without_brief_passes(self) -> None:
         result = review_gate.evaluate_gate(
             classifier={

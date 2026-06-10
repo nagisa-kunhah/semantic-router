@@ -10,7 +10,6 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-
 MATCH_STATUS_PATTERN = re.compile(
     r"(?im)^\s*(?:-\s*)?Review brief matches diff\s*:\s*(?P<value>[A-Za-z_-]+)\s*$"
 )
@@ -93,6 +92,7 @@ def evaluate_gate(
     *,
     classifier: dict[str, Any],
     review_response: str | None,
+    classifier_only: bool = False,
 ) -> ReviewGateResult:
     reason = classifier_gate_reason(classifier)
     if reason is not None:
@@ -109,6 +109,14 @@ def evaluate_gate(
             gate_reason=None,
             review_brief_match="not-applicable",
             comment_body=build_comment(True, None, "not-applicable"),
+        )
+
+    if classifier_only:
+        return ReviewGateResult(
+            gate_passed=True,
+            gate_reason=None,
+            review_brief_match="not-evaluated",
+            comment_body=build_comment(True, None, "not-evaluated"),
         )
 
     if not review_response:
@@ -153,6 +161,11 @@ def main() -> int:
     parser.add_argument("--classifier", required=True, type=Path)
     parser.add_argument("--review-response", type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument(
+        "--classifier-only",
+        action="store_true",
+        help="Only enforce classifier hard-gate output; skip AI brief/diff verdict checks.",
+    )
     parser.add_argument("--fail-on-gate", action="store_true")
     args = parser.parse_args()
 
@@ -164,6 +177,7 @@ def main() -> int:
     result = evaluate_gate(
         classifier=load_json(args.classifier),
         review_response=review_response,
+        classifier_only=args.classifier_only,
     )
     args.output.write_text(
         json.dumps(asdict(result), indent=2) + "\n", encoding="utf-8"

@@ -133,4 +133,5 @@ jobs:
           python3 tools/agent/scripts/agent_memory_review_gate.py \
             --classifier agent-memory-classification.json \
             --output agent-memory-classifier-gate.json \
+            --classifier-only \
             --fail-on-gate

@@ -117,6 +117,7 @@ class AgentMemoryClassifierTests(unittest.TestCase):
         )
         enforce_step = steps[names.index("Enforce review brief hard gate")]
         self.assertIn("agent_memory_review_gate.py", enforce_step["run"])
+        self.assertIn("--classifier-only", enforce_step["run"])
         self.assertIn("--fail-on-gate", enforce_step["run"])
 
     def test_workflow_creates_labels_and_removes_only_current_agent_labels(
@@ -170,7 +171,9 @@ class AgentMemoryClassifierTests(unittest.TestCase):
                 ]["steps"][0]
 
                 self.assertEqual(checkout_step["name"], "Checkout workflow tools")
-                self.assertEqual(checkout_step["with"]["ref"], "${{ github.workflow_sha }}")
+                self.assertEqual(
+                    checkout_step["with"]["ref"], "${{ github.workflow_sha }}"
+                )
 
 
 if __name__ == "__main__":
