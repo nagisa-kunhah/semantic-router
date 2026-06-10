@@ -45,7 +45,9 @@ class AgentReviewContextTests(unittest.TestCase):
             root = Path(temp_dir)
             brief_path = root / path
             brief_path.parent.mkdir(parents=True)
-            brief_path.write_text("# Review Brief\n\nNot verified: tests.\n", encoding="utf-8")
+            brief_path.write_text(
+                "# Review Brief\n\nNot verified: tests.\n", encoding="utf-8"
+            )
 
             prompt = self.build_prompt(
                 root,
@@ -56,6 +58,9 @@ class AgentReviewContextTests(unittest.TestCase):
         self.assertIn("## Author-provided review brief", prompt)
         self.assertIn("Not verified: tests.", prompt)
         self.assertIn("Brief / Diff Consistency", prompt)
+        self.assertIn("Review brief matches diff: yes|no|not-applicable", prompt)
+        self.assertIn("Hard gate: pass|fail", prompt)
+        self.assertIn("first finding", prompt)
         self.assertIn("trust the diff", prompt)
 
     def test_historical_briefs_are_module_related_and_limited(self) -> None:
