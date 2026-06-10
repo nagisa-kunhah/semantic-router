@@ -157,6 +157,21 @@ class AgentMemoryClassifierTests(unittest.TestCase):
                 self.assertEqual(workflow["permissions"]["issues"], "write")
                 self.assertEqual(workflow["permissions"]["pull-requests"], "write")
 
+    def test_workflows_checkout_same_commit_as_workflow_definition(self) -> None:
+        workflow_paths = (
+            SCRIPT_DIR.parents[2] / ".github/workflows/agent-memory-classifier.yml",
+            SCRIPT_DIR.parents[2] / ".github/workflows/agent-memory-review.yml",
+        )
+        for workflow_path in workflow_paths:
+            with self.subTest(workflow=workflow_path.name):
+                workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+                checkout_step = workflow["jobs"][
+                    "classify" if "classifier" in workflow_path.name else "review"
+                ]["steps"][0]
+
+                self.assertEqual(checkout_step["name"], "Checkout workflow tools")
+                self.assertEqual(checkout_step["with"]["ref"], "${{ github.workflow_sha }}")
+
 
 if __name__ == "__main__":
     unittest.main()

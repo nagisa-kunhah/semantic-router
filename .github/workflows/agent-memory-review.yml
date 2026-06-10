@@ -14,10 +14,10 @@ jobs:
   review:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout base branch tools
+      - name: Checkout workflow tools
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.workflow_sha }}
           persist-credentials: false
 
       - name: Collect PR metadata and diff
